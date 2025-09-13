@@ -1,0 +1,47 @@
+[project]
+name = "polar-oauth-app"
+version = "0.1.0"
+description = "An oauth2 server and CLI client for Polar AccessLink API"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "authlib>=1.6.3",
+    "fastapi>=0.116.1",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.10.1",
+    "python-multipart>=0.0.20",
+    "typer>=0.17.4",
+    "uvicorn>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+    "asgi-lifespan>=2.1.0",
+    "pre-commit>=4.3.0",
+    "pytest>=8.4.2",
+    "pytest-asyncio>=1.2.0",
+    "ruff>=0.13.0",
+]
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.lint]
+# Enable Pyflakes (F), pycodestyle (E, W), isort (I), and pyupgrade (UP) rules.
+select = ["E", "W", "F", "I", "UP"]
+ignore = []
+
+[tool.ruff.format]
+# Use double quotes for strings.
+quote-style = "double"
+# Indent with spaces, using 4 spaces per indentation level.
+indent-style = "space"
+# Skip formatting of magic trailing commas.
+skip-magic-trailing-comma = false
+# Enable formatting of code snippets in docstrings.
+docstring-code-format = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_test_loop_scope = "session"
+asyncio_default_fixture_loop_scope = "session"
