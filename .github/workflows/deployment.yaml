@@ -1,0 +1,27 @@
+name: Deploy Docker Image
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  DOCKER_REGISTRY: docker.io
+  DOCKER_ACCOUNT: thelazzziestdocker
+  DOCKER_IMAGE_REPO: polar-oauth-app
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: docker/login-action@v3
+      with:
+        registry: ${{ env.DOCKER_REGISTRY }}
+        username: ${{ env.DOCKER_ACCOUNT }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    - uses: docker/build-push-action@v6
+      with:
+        context: .
+        push: true
+        file: Dockerfile
+        tags: ${{ env.DOCKER_ACCOUNT }}/${{ env.DOCKER_IMAGE_REPO }}:$(date +%s)
