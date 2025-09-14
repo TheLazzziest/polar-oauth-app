@@ -321,7 +321,7 @@ wheels = [
 ]
 
 [[package]]
-name = "polar-cli"
+name = "polar-oauth-app"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
