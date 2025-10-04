@@ -1,7 +1,30 @@
 import datetime
 from abc import ABC
+from typing import Annotated, Any
 
-from pydantic import BaseModel, Field, PositiveInt, field_validator
+import httpx
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
+
+HttpMethStr = StringConstraints(
+    strip_whitespace=True,
+    to_upper=True,
+    strict=True,
+    pattern=r"^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)$",
+)
+
+
+class EndpointConfig(BaseModel):
+    """Holds the configuration for a single API endpoint."""
+
+    method: Annotated[str, HttpMethStr]
+    path: str
+    headers: httpx.Headers | None = None
+    query_model: type[BaseModel] | None = None
+    body_model: type[BaseModel] | None = None
+    response_model: Any | None = None
+    help_text: str | None = Field(None, description="An endpoint description")
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class DateModel(BaseModel, ABC):
@@ -14,14 +37,6 @@ class DateModel(BaseModel, ABC):
         if isinstance(value, str):
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
         return value
-
-
-class TokenModel(BaseModel):
-    access_token: str
-    token_type: str
-    expires_in: datetime.timedelta
-    x_user_id: PositiveInt
-    expires_at: datetime.datetime
 
 
 class TrainingLoad(BaseModel):
@@ -58,6 +73,20 @@ class HeartRate(BaseModel):
     )
     zones: list[HeartRateZone] | None = Field(
         None, description="List of heart rate zones."
+    )
+
+
+class ExerciseQueryParams(BaseModel):
+    """Query parameters for the exercise endpoint."""
+
+    samples: bool | None = Field(
+        None, description="Return all sample data for this exercise."
+    )
+    zones: bool | None = Field(
+        None, description="Return all heart rate zones for this exercise."
+    )
+    route: bool | None = Field(
+        None, description="Return the route data for this exercise."
     )
 
 

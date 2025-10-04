@@ -1,17 +1,18 @@
-from .client import PolarClient
+from .client import BearerAuth, PolarClient
 from .models import (
     ActivitySummary,
     Exercise,
     HeartRate,
     HeartRateZone,
+    HttpMethStr,
     NightlyRecharge,
-    TokenModel,
     TrainingLoad,
 )
 
 __all__ = [
+    "BearerAuth",
     "PolarClient",
-    "TokenModel",
+    "HttpMethStr",
     "TrainingLoad",
     "Exercise",
     "HeartRate",
