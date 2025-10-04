@@ -7,9 +7,11 @@ requires-python = ">=3.13"
 dependencies = [
     "authlib>=1.6.3",
     "fastapi>=0.116.1",
+    "gpxpy>=1.6.2",
     "httpx>=0.28.1",
     "pydantic-settings>=2.10.1",
     "python-multipart>=0.0.20",
+    "tcxreader>=0.4.11",
     "typer>=0.17.4",
     "uvicorn>=0.35.0",
 ]
@@ -21,6 +23,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-asyncio>=1.2.0",
     "ruff>=0.13.0",
+    "types-authlib>=1.6.2.20250914",
 ]
 
 [tool.ruff]
