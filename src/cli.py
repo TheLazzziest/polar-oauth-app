@@ -1,16 +1,16 @@
 import asyncio
 from functools import wraps
-from typing import Annotated
+from string import Template
+from typing import Annotated, cast
 
 import typer
 from httpx import AsyncClient
 
 from src.clients import polar
-from src.context import PolarContext, complete_args, complete_path, complete_query_param
+from src.context import PolarContext, complete_args, complete_path, complete_query_param, parse_header, parse_path_arg, parse_query_param
 from src.settings import settings
 
 polar_api = typer.Typer()
-
 
 @polar_api.callback()
 def lifecycle(ctx: typer.Context, token: str):
@@ -40,26 +40,45 @@ async def call(
         typer.Argument(..., help="API endpoint path.", autocompletion=complete_path),
     ],
     args: Annotated[
-        tuple[str, str],
+        list[tuple[str, str]] | None,
         typer.Option(
-            None,
+            "arg",
+            parser=parse_path_arg,
             help="Path arguments parameters for the request.",
             autocompletion=complete_args,
         ),
-    ]
-    | None,
+    ] = None,
     params: Annotated[
-        tuple[str, str],
+        list[tuple[str, str]] | None,
         typer.Option(
-            None,
+            "param",
+            parser=parse_query_param,
             help="Pass query parameters for the request",
             autocompletion=complete_query_param,
         ),
-    ]
-    | None,
+    ] = None,
+    headers: Annotated[
+        list[tuple[str, str]] | None,
+        typer.Option(
+            "header",
+            parser=parse_header,
+            help="Pass headers for the request",
+        ),
+    ] = None,
 ):
-    # client = cast(PolarContext, ctx.obj).client
-    # await client.call(method=method, path=path, *args, **params)
+    client = cast(PolarContext, ctx.obj).client
+    route = client.get_route(method, path)
+
+    if params:
+        params = route.params_model.model_validate(dict(params))
+
+    model = await client(
+        method=method,
+        path=Template(path).substitute(**args),
+        params=params,
+        json=None,
+        headers=dict(headers),
+    )
     typer.echo("Run `polar-cli api call`")
 
 

@@ -1,36 +1,19 @@
 import datetime
 from abc import ABC
-from typing import Annotated, Any
+from typing import Annotated
 
-import httpx
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
-
-HttpMethStr = StringConstraints(
-    strip_whitespace=True,
-    to_upper=True,
-    strict=True,
-    pattern=r"^(GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)$",
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
 )
 
 
-class EndpointConfig(BaseModel):
-    """Holds the configuration for a single API endpoint."""
-
-    method: Annotated[str, HttpMethStr]
-    path: str
-    headers: httpx.Headers | None = None
-    query_model: type[BaseModel] | None = None
-    body_model: type[BaseModel] | None = None
-    response_model: Any | None = None
-    help_text: str | None = Field(None, description="An endpoint description")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class DateModel(BaseModel, ABC):
-    date: datetime.date = Field(
-        ..., alias="date", description="Date of the activity in YYYY-MM-DD format."
-    )
+class DateModel(ABC, BaseModel):
+    date: Annotated[
+        datetime.date,
+        Field(alias="date", description="Date of the activity in YYYY-MM-DD format."),
+    ]
 
     @field_validator("date", mode="before")
     def parse_date(cls, value):

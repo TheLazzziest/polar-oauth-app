@@ -4,7 +4,6 @@ from .models import (
     Exercise,
     HeartRate,
     HeartRateZone,
-    HttpMethStr,
     NightlyRecharge,
     TrainingLoad,
 )
@@ -12,7 +11,6 @@ from .models import (
 __all__ = [
     "BearerAuth",
     "PolarClient",
-    "HttpMethStr",
     "TrainingLoad",
     "Exercise",
     "HeartRate",
