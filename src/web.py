@@ -9,6 +9,7 @@ from fastapi import (
     APIRouter,
     Depends,
     FastAPI,
+    Query,
     Request,
 )
 from fastapi.exceptions import HTTPException
@@ -76,14 +77,17 @@ router = APIRouter(prefix="/oauth", tags=["OAuth"])
 @router.get("/authorize", name="oauth_authorize")
 async def login(
     request: Request,
+    state: Annotated[
+        str, Query(description="An athorization session state")
+    ],  # @TODO: Change to UUID4
+    client_id: Annotated[str, Query(description="An OAuth2 client ID issued by Polar")],
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
     settings: Annotated[ApplicationSettings, Depends(provision_settings)],
     client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
+    scope: Annotated[
+        list[str] | None, Query(description="Authentication scopes governed by Polar")
+    ] = None,
 ) -> RedirectResponse:
-    state, client_id, scope = itemgetter("state", "client_id", "scope")(
-        request.query_params
-    )
-
     conn.execute(
         """
         INSERT INTO tokens (client_id, session_id) VALUES (?, ?)
@@ -93,8 +97,6 @@ async def login(
 
     if not scope:
         scope = list(settings.oauth.scopes.keys())
-    elif isinstance(scope, str):
-        scope = [scope]
 
     # Create the authorization URL
     authorization_url, state = itemgetter("url", "state")(
