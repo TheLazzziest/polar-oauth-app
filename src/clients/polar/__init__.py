@@ -1,4 +1,5 @@
-from .client import BearerAuth, PolarClient
+from .auth import BearerAuth
+from .client import PolarClient
 from .models import (
     ActivitySummary,
     Exercise,
