@@ -17,9 +17,9 @@ from fastapi.openapi.models import OAuthFlowAuthorizationCode, OAuthFlows
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2
 
-from src.migrations import apply_migrations
-from src.models import OAuth2TokenModel, TokenModel
-from src.settings import ApplicationSettings, settings
+from src.core.migrations import apply_migrations
+from src.core.models import OAuth2TokenModel, TokenModel
+from src.core.settings import ApplicationSettings, settings
 
 oauth2_flow = OAuthFlows(
     authorizationCode=OAuthFlowAuthorizationCode(
