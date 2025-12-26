@@ -141,3 +141,6 @@ cython_debug/
 .idea/
 .vscode/
 .zed/
+
+# Artifacts: Credentials, Envs, etc
+*.json
