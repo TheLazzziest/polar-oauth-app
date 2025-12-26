@@ -36,7 +36,7 @@ def complete_path(ctx: typer.Context, path: str) -> Generator[str]:
 
 
 def complete_args(ctx: typer.Context, arg: str) -> Generator[str]:
-    client = cast(PolarContext, ctx.obj).client
+    # client = cast(PolarContext, ctx.obj).client
 
     yield arg
 
