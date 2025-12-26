@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.13"
 
 [[package]]
@@ -200,6 +200,15 @@ wheels = [
 ]
 
 [[package]]
+name = "gpxpy"
+version = "1.6.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/20/ad/6f1a34e702c72cb495bb258396f237ded76c00f9fe67054a44d778d24ed9/gpxpy-1.6.2.tar.gz", hash = "sha256:a72c484b97ec42b80834353b029cc8ee1b79f0ffca1179b2210bb3baf26c01ae", size = 111695, upload-time = "2023-11-29T17:25:38.391Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/44/9f/62df6c1e52462bdd04275b36cec49efa9e8af7e7b834499eb288f73dcfbc/gpxpy-1.6.2-py3-none-any.whl", hash = "sha256:289bc2d80f116c988d0a1e763fda22838f83005573ece2bbc6521817b26fb40a", size = 42649, upload-time = "2023-11-29T17:25:35.76Z" },
+]
+
+[[package]]
 name = "h11"
 version = "0.16.0"
 source = { registry = "https://pypi.org/simple" }
@@ -327,9 +336,11 @@ source = { virtual = "." }
 dependencies = [
     { name = "authlib" },
     { name = "fastapi" },
+    { name = "gpxpy" },
     { name = "httpx" },
     { name = "pydantic-settings" },
     { name = "python-multipart" },
+    { name = "tcxreader" },
     { name = "typer" },
     { name = "uvicorn" },
 ]
@@ -340,16 +351,20 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
+    { name = "respx" },
     { name = "ruff" },
+    { name = "types-authlib" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "authlib", specifier = ">=1.6.3" },
     { name = "fastapi", specifier = ">=0.116.1" },
+    { name = "gpxpy", specifier = ">=1.6.2" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "python-multipart", specifier = ">=0.0.20" },
+    { name = "tcxreader", specifier = ">=0.4.11" },
     { name = "typer", specifier = ">=0.17.4" },
     { name = "uvicorn", specifier = ">=0.35.0" },
 ]
@@ -360,7 +375,9 @@ dev = [
     { name = "pre-commit", specifier = ">=4.3.0" },
     { name = "pytest", specifier = ">=8.4.2" },
     { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "respx", specifier = ">=0.22.0" },
     { name = "ruff", specifier = ">=0.13.0" },
+    { name = "types-authlib", specifier = ">=1.6.2.20250914" },
 ]
 
 [[package]]
@@ -518,6 +535,18 @@ wheels = [
 ]
 
 [[package]]
+name = "respx"
+version = "0.22.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "httpx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f4/7c/96bd0bc759cf009675ad1ee1f96535edcb11e9666b985717eb8c87192a95/respx-0.22.0.tar.gz", hash = "sha256:3c8924caa2a50bd71aefc07aa812f2466ff489f1848c96e954a5362d17095d91", size = 28439, upload-time = "2024-12-19T22:33:59.374Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/8e/67/afbb0978d5399bc9ea200f1d4489a23c9a1dad4eee6376242b8182389c79/respx-0.22.0-py2.py3-none-any.whl", hash = "sha256:631128d4c9aba15e56903fb5f66fb1eff412ce28dd387ca3a81339e52dbd3ad0", size = 25127, upload-time = "2024-12-19T22:33:57.837Z" },
+]
+
+[[package]]
 name = "rich"
 version = "14.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -587,6 +616,15 @@ wheels = [
 ]
 
 [[package]]
+name = "tcxreader"
+version = "0.4.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/b3/7316a0b6d208758dd4c31677ad19f6d88a536d504fb09d0ae06dd4cef5f1/tcxreader-0.4.11.tar.gz", hash = "sha256:27a79f48754a968b801ba80890cfb2ac1835ba27387a257c514b90db73edc20b", size = 13015, upload-time = "2025-03-04T15:22:01.659Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/3b/08/e1300bc8031935b178f81db53478ccedb93d3eabd0a09aaac408dbb0d7a5/tcxreader-0.4.11-py3-none-any.whl", hash = "sha256:fffff13f81c7f54fff734da91d61b6814d2b1422917a7011f6639281d150fd0e", size = 10845, upload-time = "2025-03-04T15:22:00.046Z" },
+]
+
+[[package]]
 name = "typer"
 version = "0.17.4"
 source = { registry = "https://pypi.org/simple" }
@@ -599,6 +637,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/92/e8/2a73ccf9874ec4c7638f172efc8972ceab13a0e3480b389d6ed822f7a822/typer-0.17.4.tar.gz", hash = "sha256:b77dc07d849312fd2bb5e7f20a7af8985c7ec360c45b051ed5412f64d8dc1580", size = 103734, upload-time = "2025-09-05T18:14:40.746Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/93/72/6b3e70d32e89a5cbb6a4513726c1ae8762165b027af569289e19ec08edd8/typer-0.17.4-py3-none-any.whl", hash = "sha256:015534a6edaa450e7007eba705d5c18c3349dcea50a6ad79a5ed530967575824", size = 46643, upload-time = "2025-09-05T18:14:39.166Z" },
+]
+
+[[package]]
+name = "types-authlib"
+version = "1.6.2.20250914"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "cryptography" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ce/c4/21761f01f762e5fc56314e94ee763f18e4cef4f46e6fc5c24a1a269f6e48/types_authlib-1.6.2.20250914.tar.gz", hash = "sha256:063a0ca531c9edaabd47bea205758bb6a8e66621642ce4cea14c549eaa614d91", size = 36985, upload-time = "2025-09-14T02:56:45.128Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a0/06/74b0bdac8c85b3be32c74cf07bd2f60244aa74b55c4c57f7e8e3e2f11e36/types_authlib-1.6.2.20250914-py3-none-any.whl", hash = "sha256:99c5aa02579faa5f4fe84336d6c7f48fac7a463962d8b8122325845c6339aa00", size = 79099, upload-time = "2025-09-14T02:56:44.257Z" },
 ]
 
 [[package]]

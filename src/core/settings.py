@@ -22,7 +22,7 @@ class PolarOauthSettings(BaseSettings):
         description="The URL to get an access token",
     )
     accesslink_url: HttpUrl = Field(
-        default=HttpUrl("https://www.polaraccesslink.com/v3"),
+        default=HttpUrl("https://www.polaraccesslink.com"),
         description="The URL to access the Polar Access Link API",
     )
 

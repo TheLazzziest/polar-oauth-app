@@ -1,27 +1,25 @@
 import datetime
 from abc import ABC
+from typing import Annotated
 
-from pydantic import BaseModel, Field, PositiveInt, field_validator
+from pydantic import (
+    BaseModel,
+    Field,
+    field_validator,
+)
 
 
-class DateModel(BaseModel, ABC):
-    date: datetime.date = Field(
-        ..., alias="date", description="Date of the activity in YYYY-MM-DD format."
-    )
+class DateModel(ABC, BaseModel):
+    date: Annotated[
+        datetime.date,
+        Field(alias="date", description="Date of the activity in YYYY-MM-DD format."),
+    ]
 
     @field_validator("date", mode="before")
     def parse_date(cls, value):
         if isinstance(value, str):
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
         return value
-
-
-class TokenModel(BaseModel):
-    access_token: str
-    token_type: str
-    expires_in: datetime.timedelta
-    x_user_id: PositiveInt
-    expires_at: datetime.datetime
 
 
 class TrainingLoad(BaseModel):
@@ -58,6 +56,20 @@ class HeartRate(BaseModel):
     )
     zones: list[HeartRateZone] | None = Field(
         None, description="List of heart rate zones."
+    )
+
+
+class ExerciseQueryParams(BaseModel):
+    """Query parameters for the exercise endpoint."""
+
+    samples: bool | None = Field(
+        None, description="Return all sample data for this exercise."
+    )
+    zones: bool | None = Field(
+        None, description="Return all heart rate zones for this exercise."
+    )
+    route: bool | None = Field(
+        None, description="Return the route data for this exercise."
     )
 
 

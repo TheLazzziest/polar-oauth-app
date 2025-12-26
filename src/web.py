@@ -1,54 +1,59 @@
-import asyncio
 import sqlite3
 from contextlib import asynccontextmanager
 from http import HTTPStatus
 from operator import itemgetter
-from typing import Annotated
+from typing import Annotated, cast
 
-from authlib.integrations.httpx_client import AsyncOAuth2Client
+from authlib.integrations.starlette_client import OAuth, StarletteOAuth2App
 from fastapi import (
     APIRouter,
     Depends,
     FastAPI,
+    Query,
     Request,
 )
 from fastapi.exceptions import HTTPException
 from fastapi.openapi.models import OAuthFlowAuthorizationCode, OAuthFlows
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2
-from pydantic.networks import HttpUrl
 
-from src.clients.polar import PolarClient
-from src.migrations import apply_migrations
-from src.models import TokenModel as PolarAppTokenModel
-from src.settings import ApplicationSettings, settings
+from src.core.migrations import apply_migrations
+from src.core.models import OAuth2TokenModel, TokenModel
+from src.core.settings import ApplicationSettings, settings
+
+oauth2_flow = OAuthFlows(
+    authorizationCode=OAuthFlowAuthorizationCode(
+        authorizationUrl="/oauth/authorize",
+        tokenUrl="/oauth/token",
+        scopes=settings.oauth.scopes,
+    )
+)
 
 oauth2_scheme = OAuth2(
-    flows=OAuthFlows(
-        authorizationCode=OAuthFlowAuthorizationCode(
-            authorizationUrl="/oauth/authorize",
-            tokenUrl="/oauth/token",
-            scopes=settings.oauth.scopes,
-        )
-    ),
+    flows=oauth2_flow,
     scheme_name="Polar OAuth2",
 )
 
 
 @asynccontextmanager
 async def configure(app: FastAPI):
-    app.state.settings = settings
-    app.state.polar = PolarClient(
-        oauth_client=AsyncOAuth2Client(
-            client_id=str(app.state.settings.oauth.client_id),
-            client_secret=str(app.state.settings.oauth.client_secret),
-        )
+    oauth = OAuth()
+    oauth.register(
+        name="polar",
+        client_id=str(settings.oauth.client_id),
+        client_secret=str(settings.oauth.client_secret),
+        authorize_url=str(settings.oauth.authorization_url),
+        access_token_url=str(settings.oauth.access_token_url),
+        api_base_url=str(settings.oauth.accesslink_url),
     )
+
+    app.state.oauth = oauth
+    app.state.settings = settings
     app.state.db = sqlite3.connect(
         settings.server.sqlite_path, autocommit=True, check_same_thread=False
     )
     app.state.db.row_factory = sqlite3.Row
-    await apply_migrations(asyncio.get_event_loop(), app.state.db)
+    await apply_migrations(app.state.db)
     yield
     app.state.db.close()
 
@@ -57,8 +62,8 @@ def provision_settings(request: Request) -> ApplicationSettings:
     return request.app.state.settings
 
 
-def provision_polar(request: Request) -> PolarClient:
-    return request.app.state.polar
+def provision_oauth_client(request: Request) -> StarletteOAuth2App:
+    return cast(OAuth, request.app.state.oauth).create_client("polar")
 
 
 def provision_database(request: Request) -> sqlite3.Connection:
@@ -70,16 +75,19 @@ router = APIRouter(prefix="/oauth", tags=["OAuth"])
 
 
 @router.get("/authorize", name="oauth_authorize")
-def login(
+async def login(
     request: Request,
+    state: Annotated[
+        str, Query(description="An athorization session state")
+    ],  # @TODO: Change to UUID4
+    client_id: Annotated[str, Query(description="An OAuth2 client ID issued by Polar")],
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
     settings: Annotated[ApplicationSettings, Depends(provision_settings)],
-    client: Annotated[PolarClient, Depends(provision_polar)],
+    client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
+    scope: Annotated[
+        list[str] | None, Query(description="Authentication scopes governed by Polar")
+    ] = None,
 ) -> RedirectResponse:
-    state, client_id, scope = itemgetter("state", "client_id", "scope")(
-        request.query_params
-    )
-
     conn.execute(
         """
         INSERT INTO tokens (client_id, session_id) VALUES (?, ?)
@@ -89,26 +97,29 @@ def login(
 
     if not scope:
         scope = list(settings.oauth.scopes.keys())
-    elif isinstance(scope, str):
-        scope = [scope]
 
     # Create the authorization URL
-    authorization_url, state = client.create_authorization_url(
-        settings.oauth.authorization_url,
-        HttpUrl(str(request.url_for("oauth_callback"))),
-        state,  # Pass the generated state
-        scope=scope,
+    authorization_url, state = itemgetter("url", "state")(
+        await client.create_authorization_url(
+            str(request.url_for("oauth_callback")),
+            state=state,  # Pass the generated state
+            response_type="code",
+            scope=scope,
+        )
     )
-
+    if not authorization_url or not state:
+        raise HTTPException(
+            status_code=HTTPStatus.INTERNAL_SERVER_ERROR,
+            detail="Failed to create authorization URL",
+        )
     return RedirectResponse(authorization_url, headers=request.headers)
 
 
 @router.get("/callback", name="oauth_callback")
 async def callback(
     request: Request,
-    client: Annotated[PolarClient, Depends(provision_polar)],
+    client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
-    settings: Annotated[ApplicationSettings, Depends(provision_settings)],
 ) -> RedirectResponse:
     """
     Handles the OAuth2 callback from Polar
@@ -136,10 +147,13 @@ async def callback(
             status_code=HTTPStatus.BAD_REQUEST, detail="Invalid OAuth state"
         )
 
-    token_model = await client.fetch_access_token(
-        settings.oauth.access_token_url,
-        HttpUrl(str(request.url)),
-        HttpUrl(str(request.url_for("oauth_callback"))),
+    token_model = OAuth2TokenModel.model_validate(
+        await client.fetch_access_token(
+            str(request.url_for("oauth_callback")),
+            grant_type="authorization_code",
+            authorization_response=str(request.url),
+        ),
+        by_name=True,
     )
 
     # Update the token entry for the specific temporary user email
@@ -169,11 +183,11 @@ async def callback(
     return RedirectResponse(url=redirect_url)
 
 
-@router.post("/token", name="oauth_token", response_model=PolarAppTokenModel)
+@router.post("/token", name="oauth_token", response_model=TokenModel)
 async def issue_token(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
-) -> PolarAppTokenModel:
+) -> TokenModel:
     """Implements the token endpoint for OAuth2 token exchange."""
 
     form_data = await request.form()
@@ -199,16 +213,17 @@ async def issue_token(
             status_code=HTTPStatus.NOT_FOUND, detail="Token not found for user"
         )
 
-    return PolarAppTokenModel.model_validate(
+    return TokenModel.model_validate(
         {key: token_data[key] for key in token_data.keys()},
+        by_alias=True,
     )
 
 
-@router.get("/token/fetch", name="oauth_fetch_token", response_model=PolarAppTokenModel)
+@router.get("/token/fetch", name="oauth_fetch_token", response_model=TokenModel)
 async def fetch_token(
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
     authorization: Annotated[str, Depends(oauth2_scheme)],
-) -> PolarAppTokenModel:
+) -> TokenModel:
     parts = authorization.split(" ")
     if len(parts) != 2:
         raise HTTPException(
@@ -220,10 +235,11 @@ async def fetch_token(
 
     token_data = conn.execute(
         """
+        SELECT
             user_id,
             access_token,
             token_type,
-        (token, token_type),
+            expires_at,
             updated_at,
             created_at
         FROM tokens
@@ -237,8 +253,9 @@ async def fetch_token(
             status_code=HTTPStatus.NOT_FOUND, detail="Token not found for user"
         )
 
-    return PolarAppTokenModel.model_validate(
+    return TokenModel.model_validate(
         {key: token_data[key] for key in token_data.keys()},
+        by_alias=True,
     )
 
 
@@ -258,7 +275,7 @@ app = FastAPI(
         "clientId": settings.oauth.client_id,
         "clientSecret": settings.oauth.client_secret,
         "useBasicAuthenticationWithAccessCodeGrant": True,
-        "appName": "Polar API App",
+        "appName": "Polar OAuth Server",
     },
 )
 for r in (healthcheck_router, router):

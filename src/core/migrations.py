@@ -1,11 +1,8 @@
-import asyncio
 import sqlite3
 
 
-async def apply_migrations(loop: asyncio.AbstractEventLoop, db: sqlite3.Connection):
-    await loop.run_in_executor(
-        None,
-        db.execute,
+async def apply_migrations(db: sqlite3.Connection):
+    db.execute(
         """
         CREATE TABLE IF NOT EXISTS tokens (
             id INTEGER PRIMARY KEY,
@@ -23,5 +20,5 @@ async def apply_migrations(loop: asyncio.AbstractEventLoop, db: sqlite3.Connecti
     )
 
 
-async def revert_migrations(loop: asyncio.AbstractEventLoop, db: sqlite3.Connection):
-    await loop.run_in_executor(None, db.execute, "DROP TABLE IF EXISTS tokens")
+async def revert_migrations(db: sqlite3.Connection):
+    db.execute("DROP TABLE IF EXISTS tokens")
