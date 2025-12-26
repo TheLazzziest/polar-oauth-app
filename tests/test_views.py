@@ -4,7 +4,7 @@ import pytest
 from httpx import AsyncClient
 from pydantic import UUID4
 
-from src.settings import ApplicationSettings
+from src.core.settings import ApplicationSettings
 
 
 async def test_healthcheck(test_client: AsyncClient) -> None:
