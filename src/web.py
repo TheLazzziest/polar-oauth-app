@@ -18,7 +18,7 @@ from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2
 
 from src.core.migrations import apply_migrations
-from src.core.models import OAuth2TokenModel, TokenModel
+from src.core.models import OAuth2TokenModel, TokenModel, UserModel
 from src.core.settings import ApplicationSettings, settings
 
 oauth2_flow = OAuthFlows(
@@ -183,7 +183,7 @@ async def callback(
     return RedirectResponse(url=redirect_url)
 
 
-@router.post("/token", name="oauth_token", response_model=TokenModel)
+@router.post("/token", name="oauth_issue_token", response_model=TokenModel)
 async def issue_token(
     request: Request,
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
@@ -219,7 +219,7 @@ async def issue_token(
     )
 
 
-@router.get("/token/fetch", name="oauth_fetch_token", response_model=TokenModel)
+@router.get("/token", name="oauth_fetch_token", response_model=TokenModel)
 async def fetch_token(
     conn: Annotated[sqlite3.Connection, Depends(provision_database)],
     authorization: Annotated[str, Depends(oauth2_scheme)],
@@ -257,6 +257,165 @@ async def fetch_token(
         {key: token_data[key] for key in token_data.keys()},
         by_alias=True,
     )
+
+
+@router.post("/user", name="oauth_user_register", response_model=UserModel)
+async def register_user(
+    conn: Annotated[sqlite3.Connection, Depends(provision_database)],
+    client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
+    authorization: Annotated[str, Depends(oauth2_scheme)],
+):
+    parts = authorization.split(" ")
+    if len(parts) != 2:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Invalid authorization header format",
+        )
+
+    token_type, token = parts
+
+    token_data = conn.execute(
+        """
+        SELECT
+            client_id,
+            user_id,
+            access_token,
+            token_type,
+            unixepoch(expires_at) as expires_at,
+            updated_at,
+            created_at
+        FROM tokens
+        WHERE access_token = ? AND token_type = ?
+        """,
+        (token, token_type.lower()),
+    ).fetchone()
+
+    if not token_data:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Token not found for user"
+        )
+
+    found_user = conn.execute(
+        """
+        SELECT
+            id,
+            client_id,
+            member_id,
+            created_at
+        FROM users
+        WHERE client_id = ? AND member_id = ?
+        """,
+        (token_data["client_id"], token_data["user_id"]),
+    ).fetchone()
+
+    if found_user is not None:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail="User already registered",
+        )
+
+    response = await client.post(
+        "/v3/users",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"{token_type.capitalize()} {token}",
+        },
+        token=dict(token_data),
+        json={"member-id": token_data["user_id"]},
+    )
+    registered_user = UserModel.model_validate(
+        response.json(),
+        by_alias=True,
+    )
+    return registered_user
+
+
+@router.get("/user", name="register-user")
+async def fetch_user(
+    conn: Annotated[sqlite3.Connection, Depends(provision_database)],
+    client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
+    authorization: Annotated[str, Depends(oauth2_scheme)],
+) -> UserModel:
+    parts = authorization.split(" ")
+    if len(parts) != 2:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Invalid authorization header format",
+        )
+
+    token_type, token = parts
+
+    token_data = conn.execute(
+        """
+        SELECT
+            client_id,
+            user_id,
+            access_token,
+            token_type,
+            unixepoch(expires_at) as expires_at,
+            updated_at,
+            created_at
+        FROM tokens
+        WHERE access_token = ? AND token_type = ?
+        """,
+        (token, token_type.lower()),
+    ).fetchone()
+
+    if not token_data:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Token not found for user"
+        )
+
+    response = await client.get(
+        f"/v3/users/{token_data['user_id']}",
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "Authorization": f"{token_type.capitalize()} {token}",
+        },
+        token=dict(token_data),
+    )
+
+    registered_user = UserModel.model_validate(
+        response.json(),
+        by_alias=True,
+    )
+
+    return registered_user
+
+
+@router.delete("/user/")
+async def delete_user(
+    conn: Annotated[sqlite3.Connection, Depends(provision_database)],
+    client: Annotated[StarletteOAuth2App, Depends(provision_oauth_client)],
+    authorization: Annotated[str, Depends(oauth2_scheme)],
+):
+    parts = authorization.split(" ")
+    if len(parts) != 2:
+        raise HTTPException(
+            status_code=HTTPStatus.UNAUTHORIZED,
+            detail="Invalid authorization header format",
+        )
+
+    token_type, token = parts
+
+    token_data = conn.execute(
+        """
+        SELECT
+            client_id,
+            user_id,
+            access_token,
+            token_type,
+            created_at
+           FROM tokens
+           WHERE access_token = ? AND token_type = ?
+           """,
+        (token, token_type.lower()),
+    ).fetchone()
+
+    await client.delete(f"/users/{token_data['user_id']}")
+    return {"message": "User deleted"}
 
 
 @healthcheck_router.get("/check", name="healthcheck")
