@@ -6,7 +6,7 @@ from src.clients.polar.contexts import ListExercisesContext
 from src.clients.polar.models import Exercise
 
 
-# @respx.mock(assert_all_mocked=False)
+@respx.mock(assert_all_mocked=False)
 async def test_list_exercises_statically(test_polar_client: PolarClient):
     """Tests the statically defined `list_exercises` method."""
     mock_response = [
