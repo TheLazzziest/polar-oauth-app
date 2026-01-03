@@ -11,22 +11,22 @@
 
 1. You must have a [Polar](https://www.polar.com/welcome/) account.
 2. You must have an oauth2 application registered on [Polar Admin](https://admin.polaraccesslink.com) page.
-3. You must have a [ngrok](https://ngrok.com/download) account.
 
 ## Quickstart
 
-1. Run ngrok agent:
-```bash
-ngrok http http://localhost:8000
-```
-2. Create .env file and fill it:
+1. Create .env file and fill it:
 ```bash
 cp example.env .env
 ```
+2. Run the application:
+```bash
+uv run uvicorn src.web:app --reload --host 0.0.0.0 --port 8000
+```
+3. Ready
 
 ### Docker flow
 
-3. Run the Docker container:
+1. Run the Docker container:
 ```bash
 docker run -d -p 8000:8000 --env-file .env thelazzziest/polar-oauth-app --host 0.0.0.0 --port 8000 --log-level debug
 ```
