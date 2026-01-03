@@ -45,7 +45,8 @@ class PolarClient(AsyncClient):
             ),
         )
     )
-    async def list_exercises(self, context: ListExercisesContext) -> list[Exercise]: ...
+    async def list_exercises(self, context: ListExercisesContext) -> list[Exercise]:
+        """see: https://www.polar.com/accesslink-api/#list-exercises"""
 
     async def list_exercises(self, context: ResponseContext) -> list[Exercise]:
         """Fetches a list of exercises for the authenticated user.

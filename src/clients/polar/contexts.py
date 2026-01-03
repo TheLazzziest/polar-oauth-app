@@ -6,7 +6,10 @@ from src.clients.base.contexts import RequestContext
 from src.clients.polar.models import ExerciseQueryParams
 
 
-class ListExercisesContext(RequestContext[ExerciseQueryParams]): ...
+class ListExercisesContext(RequestContext[ExerciseQueryParams]):
+    samples: bool = False
+    zones: bool = False
+    route: bool = False
 
 
 class ExerciseContext(RequestContext[ExerciseQueryParams]):
